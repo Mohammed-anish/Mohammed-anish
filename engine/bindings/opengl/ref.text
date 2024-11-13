@@ -1,0 +1,115 @@
+// Load the custom GLFW DLL
+final DynamicLibrary glfw = Platform.isWindows
+    ? DynamicLibrary.open('glfw3.dll')
+    : DynamicLibrary.open('libglfw.so'); // For Linux
+
+// Load OpenGL
+final DynamicLibrary opengl = DynamicLibrary.open('opengl32.dll');
+
+// OpenGL function signatures
+typedef GLClearColorNative = Void Function(
+    Float red, Float green, Float blue, Float alpha);
+typedef GlClearColor = void Function(
+    double red, double green, double blue, double alpha);
+
+typedef GLClearNative = Void Function(Uint32 mask);
+typedef GlClear = void Function(int mask);
+
+const int GL_COLOR_BUFFER_BIT = 0x00004000;
+
+// Define GLFW function signatures
+typedef GLFWInitNative = Into32 Function();
+typedef GlfwInit = int Function();
+
+typedef GLFWCreateWindowNative = Pointer<Void> Function(
+    Int32 width,
+    Int32 height,
+    Pointer<Utf8> title,
+    Pointer<Void> monitor,
+    Pointer<Void> share);
+typedef GlfwCreateWindow = Pointer<Void> Function(int width, int height,
+    Pointer<Utf8> title, Pointer<Void> monitor, Pointer<Void> share);
+
+typedef GLFWMakeContextCurrentNative = Void Function(Pointer<Void> window);
+typedef GlfwMakeContextCurrent = void Function(Pointer<Void> window);
+
+typedef GLFWWindowShouldCloseNative = Int32 Function(Pointer<Void> window);
+typedef GlfwWindowShouldClose = int Function(Pointer<Void> window);
+
+typedef GLFWPollEventsNative = Void Function();
+typedef GlfwPollEvents = void Function();
+
+typedef GLFWSwapBuffersNative = Void Function(Pointer<Void> window);
+typedef GlfwSwapBuffers = void Function(Pointer<Void> window);
+
+// Look up GLFW functions
+final GlfwInit glfwInit =
+    glfw.lookup<NativeFunction<GLFWInitNative>>('glfwInit').asFunction();
+final GlfwCreateWindow glfwCreateWindow = glfw
+    .lookup<NativeFunction<GLFWCreateWindowNative>>('glfwCreateWindow')
+    .asFunction();
+final GlfwMakeContextCurrent glfwMakeContextCurrent = glfw
+    .lookup<NativeFunction<GLFWMakeContextCurrentNative>>(
+        'glfwMakeContextCurrent')
+    .asFunction();
+final GlfwWindowShouldClose glfwWindowShouldClose = glfw
+    .lookup<NativeFunction<GLFWWindowShouldCloseNative>>(
+        'glfwWindowShouldClose')
+    .asFunction();
+final GlfwPollEvents glfwPollEvents = glfw
+    .lookup<NativeFunction<GLFWPollEventsNative>>('glfwPollEvents')
+    .asFunction();
+final GlfwSwapBuffers glfwSwapBuffers = glfw
+    .lookup<NativeFunction<GLFWSwapBuffersNative>>('glfwSwapBuffers')
+    .asFunction();
+
+// Look up OpenGL functions
+final GlClearColor glClearColor = opengl
+    .lookup<NativeFunction<GLClearColorNative>>('glClearColor')
+    .asFunction();
+final GlClear glClear =
+    opengl.lookup<NativeFunction<GLClearNative>>('glClear').asFunction();
+
+void main() {
+  // Initialize GLFW
+  if (glfwInit() == 0) {
+    print('Failed to initialize GLFW');
+    return;
+  }
+
+  print('GLFW initialized successfully with custom DLL');
+
+  // Create a windowed mode window and its OpenGL context
+  Pointer<Utf8> title = 'Hello, GLFW'.toNativeUtf8();
+  Pointer<Void> window = glfwCreateWindow(640, 480, title, nullptr, nullptr);
+
+  if (window == nullptr) {
+    print('Failed to create GLFW window');
+    calloc.free(title);
+    return;
+  }
+
+  // Make the window's context current
+  glfwMakeContextCurrent(window);
+
+  // Set OpenGL clear color (for example, blue)
+  glClearColor(0.5, 0.0, 1.0, 1.0); // RGBA
+
+  // Render loop
+  while (glfwWindowShouldClose(window) == 0) {
+    // Clear the color buffer
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // Swap front and back buffers
+    glfwSwapBuffers(window);
+
+    // Poll for and process events
+    glfwPollEvents();
+  }
+
+  // Free the allocated UTF8 title string
+  calloc.free(title);
+
+  // Clean up and exit
+  print('Exiting...');
+}
